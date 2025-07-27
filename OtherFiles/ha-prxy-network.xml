@@ -1,0 +1,20 @@
+<network>
+  <name>ha-prxy-network</name>
+  <uuid>6516fb5c-2a0c-473c-9e87-ef5c06ec60d5</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr1' stp='on' delay='0'/>
+  <mac address='52:54:00:66:75:f2'/>
+  <ip address='192.168.222.0' netmask='255.255.255.0'>
+    <dhcp>
+      <!-- Fixing IPs For Each VM <range start='192.168.222.200' end='192.168.222.240'/> -->
+      <host mac='52:54:00:cb:5f:04' ip='192.168.222.205'/>
+      <host mac='52:54:00:a9:11:31' ip='192.168.222.220'/>
+      <host mac='52:54:00:35:18:38' ip='192.168.222.225'/>
+    </dhcp>
+  </ip>
+</network>
+
