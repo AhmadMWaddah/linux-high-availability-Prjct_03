@@ -1,0 +1,119 @@
+---
+- name: Base system configuration
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Update all packages
+      dnf:
+        name: '*'
+        state: latest
+        update_cache: yes
+
+    - name: Install essential packages
+      package:
+        name:
+          - epel-release
+          - python3
+          - git
+          - curl
+          - wget
+          - vim
+          - firewalld
+          - ansible-core
+        state: present
+
+    - name: Enable and start firewalld
+      service:
+        name: firewalld
+        enabled: yes
+        state: started
+
+    - name: Configure basic firewall rules
+      firewalld:
+        service: ssh
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Ensure SELinux is in enforcing mode
+      selinux:
+        policy: targeted
+        state: enforcing
+
+- name: Configure web servers
+  hosts: web_servers
+  become: true
+
+  tasks:
+    - name: Install Nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: Create unique content for each server
+      copy:
+        content: "Hello from {{ inventory_hostname }}"
+        dest: /usr/share/nginx/html/index.html
+      notify: restart nginx
+
+    - name: Open HTTP port in firewall
+      firewalld:
+        port: 80/tcp
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+- name: Configure HAProxy load balancer
+  hosts: load_balancer
+  become: true
+
+  tasks:
+    - name: Install HAProxy
+      package:
+        name: haproxy
+        state: present
+
+    - name: Configure HAProxy
+      template:
+        src: haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart haproxy
+
+    - name: Open HAProxy ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - "80/tcp"
+        - "8080/tcp"
+
+    - name: Ensure HAProxy is running
+      service:
+        name: haproxy
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: restart haproxy
+      service:
+        name: haproxy
+        state: restarted
