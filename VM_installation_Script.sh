@@ -29,7 +29,7 @@ set -e
 ###############################################################################
 
 # === Configuration Variables ===
-VM_NAMES=("WebServOne_VM" "WebServTwo_VM" "HAProxyLB_VM")
+VM_NAMES=("WebServOne_VM" "WebServTwo_VM" "HAProxyOne_VM" "HAProxyTwo_VM")
 IMAGE_DIR="/home/amw/Office/DevOps/linux-high-availability-Prjct_03/Lab_VMs"
 DISK_SIZE="20G"
 RAM="3072"
