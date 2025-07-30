@@ -14,7 +14,6 @@
     - name: Install essential packages
       package:
         name:
-          - epel-release
           - python3
           - git
           - curl
@@ -78,7 +77,7 @@
         state: restarted
 
 - name: Configure HAProxy load balancer
-  hosts: load_balancer
+  hosts: load_balancers
   become: true
 
   tasks:
