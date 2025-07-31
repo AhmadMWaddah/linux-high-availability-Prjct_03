@@ -1,17 +1,32 @@
 ---
-- name: Base system configuration
+- name: Configure Passwordless Sudo
+  hosts: all
+  become: false
+  tasks:
+    - name: Set Up Sudoers File
+      copy:
+        dest: /etc/sudoers.d/ansible-nopasswd
+        content: "{{ ansible_user }} ALL=(ALL) NOPASSWD:ALL"
+        owner: root
+        group: root
+        mode: '0440'
+
+- name: Base System Configuration
   hosts: all
   become: true
   gather_facts: true
-
   tasks:
-    - name: Update all packages
+    - name: Validate Sudoers File
+      command: visudo -cf /etc/sudoers.d/ansible-nopasswd
+      changed_when: false
+
+    - name: Update All Packages
       dnf:
         name: '*'
         state: latest
         update_cache: yes
 
-    - name: Install essential packages
+    - name: Install Essential Packages
       package:
         name:
           - python3
@@ -23,48 +38,47 @@
           - ansible-core
         state: present
 
-    - name: Enable and start firewalld
+    - name: Enable and Start Firewalld
       service:
         name: firewalld
         enabled: yes
         state: started
 
-    - name: Configure basic firewall rules
+    - name: Configure Basic Firewall Rules
       firewalld:
         service: ssh
         permanent: yes
         state: enabled
         immediate: yes
 
-    - name: Ensure SELinux is in enforcing mode
+    - name: Ensure SELinux is in Enforcing Mode
       selinux:
         policy: targeted
         state: enforcing
 
-- name: Configure web servers
+- name: Configure Web Servers
   hosts: web_servers
   become: true
-
   tasks:
     - name: Install Nginx
       package:
         name: nginx
         state: present
 
-    - name: Create unique content for each server
+    - name: Create Unique Content For Each Server
       copy:
         content: "Hello from {{ inventory_hostname }}"
         dest: /usr/share/nginx/html/index.html
       notify: restart nginx
 
-    - name: Open HTTP port in firewall
+    - name: Open HTTP Port in Firewall
       firewalld:
         port: 80/tcp
         permanent: yes
         state: enabled
         immediate: yes
 
-    - name: Ensure Nginx is running
+    - name: Ensure Nginx is Running
       service:
         name: nginx
         state: started
@@ -76,10 +90,9 @@
         name: nginx
         state: restarted
 
-- name: Configure HAProxy load balancer
+- name: Configure HAProxy Load Balancer
   hosts: load_balancers
   become: true
-
   tasks:
     - name: Install HAProxy
       package:
@@ -95,7 +108,7 @@
         mode: '0644'
       notify: restart haproxy
 
-    - name: Open HAProxy ports
+    - name: Open HAProxy Ports
       firewalld:
         port: "{{ item }}"
         permanent: yes
@@ -105,9 +118,58 @@
         - "80/tcp"
         - "8080/tcp"
 
-    - name: Ensure HAProxy is running
+    - name: Ensure HAProxy is Running
       service:
         name: haproxy
+        state: started
+        enabled: yes
+
+    - name: Install Keepalived
+      package:
+        name: keepalived
+        state: present
+
+    - name: Create Keepalived Configuration
+      template:
+        src: keepalived.conf.j2
+        dest: /etc/keepalived/keepalived.conf
+        owner: root
+        group: root
+        mode: '0640'
+      notify: restart keepalived
+
+    - name: Enable Non-Local IP Binding
+      sysctl:
+        name: net.ipv4.ip_nonlocal_bind
+        value: '1'
+        state: present
+        reload: yes
+
+    - name: Allow VRRP Protocol (UDP 112)
+      firewalld:
+        port: 112/udp
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Allow Multicast Traffic
+      firewalld:
+        rich_rule: 'rule family="ipv4" source address="224.0.0.0/24" accept'
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Ensure Correct Zone Assignment
+      firewalld:
+        zone: public
+        interface: enp1s0
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Ensure Keepalived is Running
+      service:
+        name: keepalived
         state: started
         enabled: yes
 
@@ -115,4 +177,9 @@
     - name: restart haproxy
       service:
         name: haproxy
+        state: restarted
+
+    - name: restart keepalived
+      service:
+        name: keepalived
         state: restarted
