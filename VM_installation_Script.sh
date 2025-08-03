@@ -32,7 +32,7 @@ set -e
 VM_NAMES=("WebServOne_VM" "WebServTwo_VM" "HAProxyOne_VM" "HAProxyTwo_VM")
 IMAGE_DIR="/home/amw/Office/DevOps/linux-high-availability-Prjct_03/Lab_VMs"
 DISK_SIZE="20G"
-RAM="3072"
+RAM="4096"
 VCPUS="2"
 OS_VARIANT="rocky9"
 ROCKY_ISO_PATH="/home/amw/Office/Linux/Distros/Rocky 9.5 AMD64/Rocky 9.5 AMD64 DVD.iso"
