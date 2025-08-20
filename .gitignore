@@ -7,3 +7,6 @@ terraform.tfvars
 # SSH
 SSH Keys/
 *.pem
+
+# Draft Files
+Markdown Text.md
